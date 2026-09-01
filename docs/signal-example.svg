@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Bullish Gartley signal example</title>
+  <desc id="desc">Bullish XABCD geometry, B confirmation, target and stop.</desc>
+  <rect width="1000" height="560" fill="#f8fafc"/>
+  <text x="500" y="48" text-anchor="middle" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#0f172a">Bullish Gartley signal</text>
+  <line x1="70" y1="430" x2="940" y2="430" stroke="#e2e8f0" stroke-width="2"/>
+  <polyline points="100,400 300,105 480,285 650,145 790,375 900,265" fill="none" stroke="#2563eb" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="480" y1="285" x2="920" y2="285" stroke="#f59e0b" stroke-width="4" stroke-dasharray="12 8"/>
+  <line x1="790" y1="175" x2="930" y2="175" stroke="#16a34a" stroke-width="4" stroke-dasharray="12 8"/>
+  <line x1="100" y1="425" x2="930" y2="425" stroke="#dc2626" stroke-width="4" stroke-dasharray="12 8"/>
+  <g font-family="system-ui, sans-serif" font-size="25" font-weight="700" fill="#0f172a">
+    <text x="70" y="430">X</text><text x="290" y="90">A</text><text x="465" y="320">B</text><text x="640" y="130">C</text><text x="775" y="410">D</text>
+  </g>
+  <circle cx="900" cy="265" r="8" fill="#16a34a"/>
+  <text x="915" y="255" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="#15803d">entry</text>
+  <text x="935" y="155" text-anchor="end" font-family="system-ui, sans-serif" font-size="17" fill="#15803d">target: D + 0.618 XA</text>
+  <text x="935" y="265" text-anchor="end" font-family="system-ui, sans-serif" font-size="17" fill="#a16207">B confirmation</text>
+  <text x="935" y="405" text-anchor="end" font-family="system-ui, sans-serif" font-size="17" fill="#b91c1c">stop beyond X</text>
+  <g font-family="system-ui, sans-serif" font-size="16" fill="#475569">
+    <text x="355" y="165">AB/XA = 0.618</text><text x="525" y="205">BC/AB = 0.786</text><text x="670" y="275">CD/BC ≈ 1.27–1.618</text><text x="360" y="470">AD/XA = 0.786 and AB ≈ CD</text>
+  </g>
+</svg>
