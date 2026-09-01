@@ -1,8 +1,27 @@
 import { mapAiRuntimeFromConfig } from "@tradejs/core/strategies";
-import type { StrategyAiAdapter } from "@tradejs/types";
+import {
+  getAiPayloadValue,
+  withStrategyLocalAiGate,
+} from "@tradejs/strategy-kit/ai-gate";
+import type { AiPayload, StrategyAiAdapter } from "@tradejs/types";
 import type { GartleyConfig } from "../config";
 
-export const gartleyAiAdapter: StrategyAiAdapter = {
+const latestPayloadNumber = (
+  payload: AiPayload,
+  path: string,
+): number | null => {
+  const values = getAiPayloadValue(payload, path);
+  if (!Array.isArray(values)) return null;
+
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    const candidate = Number(values[index]);
+    if (Number.isFinite(candidate)) return candidate;
+  }
+
+  return null;
+};
+
+const gartleyBaseAiAdapter: StrategyAiAdapter = {
   buildPayload: ({ signal, basePayload }) => {
     const baseAdditional =
       (basePayload.additionalIndicators as
@@ -57,3 +76,23 @@ Interpretation rules for Gartley:
       >,
     ),
 };
+
+export const gartleyAiAdapter = withStrategyLocalAiGate(gartleyBaseAiAdapter, {
+  id: "gartley_directional_momentum_trend_gate_2026_09_01",
+  approves: ({ signal, payload }) => {
+    if (signal.direction === "LONG") {
+      const latestMacdHistogram = latestPayloadNumber(
+        payload,
+        "indicators.macdHistogram",
+      );
+      return latestMacdHistogram != null && latestMacdHistogram > 0;
+    }
+
+    if (signal.direction === "SHORT") {
+      const latestMaSlow = latestPayloadNumber(payload, "indicators.maSlow");
+      return latestMaSlow != null && signal.prices.currentPrice < latestMaSlow;
+    }
+
+    return false;
+  },
+});

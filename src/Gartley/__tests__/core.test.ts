@@ -28,13 +28,19 @@ const mirrorCandles = (candles: ReturnType<typeof makeBullishGartleyCandles>) =>
     turnover: (220 - candle.close) * 1_000,
   }));
 
-const makeIndicatorsState = () =>
+const makeIndicatorsState = (
+  snapshot: Record<string, unknown> = {
+    baseContext: {},
+    macdHistogram: [1],
+    maSlow: [1_000_000],
+  },
+) =>
   ({
     setCurrentBar: jest.fn(),
     next: jest.fn(),
     onBar: jest.fn(),
     ensureInitializedWithCurrentBar: jest.fn(),
-    snapshot: jest.fn(() => ({ baseContext: {} })),
+    snapshot: jest.fn(() => snapshot),
     latestNumber: jest.fn(() => undefined),
     isInitialized: jest.fn(() => true),
   }) as any;
@@ -132,6 +138,65 @@ describe("Gartley core", () => {
     expect(
       (result as any).signal.additionalIndicators.gartleyContext.patternKind,
     ).toBe("bullish_gartley");
+    expect(
+      (result as any).signal.additionalIndicators.gartleyContext
+        .directionalFilter,
+    ).toMatchObject({
+      latestMacdHistogram: 1,
+      longMomentumConfirmed: true,
+    });
+  });
+
+  it("rejects a long entry without positive MACD momentum", async () => {
+    const candles = makeBullishGartleyCandles();
+    const currentCandle = candles[candles.length - 1]!;
+    const marketData = {
+      timestamp: currentCandle.timestamp,
+      currentPrice: currentCandle.close,
+      lastCandle: currentCandle,
+    };
+    const core = await createGartleyCore({
+      config: makeConfig(),
+      data: candles.slice(0, -1) as any,
+      strategyApi: makeStrategyApi({ marketData }),
+      indicatorsState: makeIndicatorsState({
+        macdHistogram: [-0.001, 0],
+        maSlow: [1_000_000],
+      }),
+    });
+
+    await expect(
+      core(currentCandle as any, currentCandle as any),
+    ).resolves.toMatchObject({
+      kind: "skip",
+      code: "LONG_MACD_HISTOGRAM_NOT_POSITIVE",
+    });
+  });
+
+  it("requires a short entry price below the latest slow average", async () => {
+    const candles = mirrorCandles(makeBullishGartleyCandles());
+    const currentCandle = candles[candles.length - 1]!;
+    const marketData = {
+      timestamp: currentCandle.timestamp,
+      currentPrice: currentCandle.close,
+      lastCandle: currentCandle,
+    };
+    const core = await createGartleyCore({
+      config: makeConfig(),
+      data: candles.slice(0, -1) as any,
+      strategyApi: makeStrategyApi({ marketData }),
+      indicatorsState: makeIndicatorsState({
+        macdHistogram: [-1],
+        maSlow: [currentCandle.close],
+      }),
+    });
+
+    await expect(
+      core(currentCandle as any, currentCandle as any),
+    ).resolves.toMatchObject({
+      kind: "skip",
+      code: "SHORT_PRICE_NOT_BELOW_MA_SLOW",
+    });
   });
 
   it("exits an existing long on a bearish Gartley", async () => {

@@ -23,6 +23,17 @@ const isOpenPosition = (position: Position | null): position is Position =>
     (position.direction === "LONG" || position.direction === "SHORT"),
   );
 
+const latestFiniteNumber = (value: unknown): number | null => {
+  if (!Array.isArray(value)) return null;
+
+  for (let index = value.length - 1; index >= 0; index -= 1) {
+    const candidate = Number(value[index]);
+    if (Number.isFinite(candidate)) return candidate;
+  }
+
+  return null;
+};
+
 const buildGartleyStateKey = (config: GartleyConfig) =>
   JSON.stringify({
     pivotLength: config.GARTLEY_PIVOT_LENGTH,
@@ -147,6 +158,29 @@ export const createGartleyCore: CreateStrategyCore<
       return strategyApi.skip(`RISK_RATIO:${round(riskRatio)}`);
     }
 
+    const indicators = indicatorsState.snapshot() ?? {};
+    const latestMacdHistogram = latestFiniteNumber(indicators.macdHistogram);
+    const latestMaSlow = latestFiniteNumber(indicators.maSlow);
+    const longMomentumConfirmed =
+      latestMacdHistogram != null && latestMacdHistogram > 0;
+    const shortTrendConfirmed =
+      latestMaSlow != null && currentPrice < latestMaSlow;
+
+    if (
+      pattern.direction === "LONG" &&
+      config.GARTLEY_LONG_REQUIRE_POSITIVE_MACD_HISTOGRAM &&
+      !longMomentumConfirmed
+    ) {
+      return strategyApi.skip("LONG_MACD_HISTOGRAM_NOT_POSITIVE");
+    }
+    if (
+      pattern.direction === "SHORT" &&
+      config.GARTLEY_SHORT_REQUIRE_PRICE_BELOW_MA_SLOW &&
+      !shortTrendConfirmed
+    ) {
+      return strategyApi.skip("SHORT_PRICE_NOT_BELOW_MA_SLOW");
+    }
+
     const signalContext = {
       ...buildGartleySignalContext({ ...pattern, close: currentPrice }),
       executionEconomics: {
@@ -155,8 +189,13 @@ export const createGartleyCore: CreateStrategyCore<
         lossPerUnit: economics.lossPerUnit,
         rewardPerUnit: economics.rewardPerUnit,
       },
+      directionalFilter: {
+        latestMacdHistogram,
+        latestMaSlow,
+        longMomentumConfirmed,
+        shortTrendConfirmed,
+      },
     };
-    const indicators = indicatorsState.snapshot();
     lastTradeController.markTrade(timestamp);
 
     return strategyApi.entry({
